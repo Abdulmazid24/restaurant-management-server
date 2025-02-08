@@ -23,20 +23,43 @@ async function run() {
   try {
     const db = client.db('restaurantDB');
     const foodsCollection = db.collection('foods');
-
-    // get all foods data
+    const purchasesCollection = db.collection('purchases');
     app.get('/foods', async (req, res) => {
-      const result = await foodsCollection.find().toArray();
-      res.send(result);
-      console.log(result);
+      try {
+        const result = await foodsCollection.find().toArray();
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching foods:', error);
+        res.status(500).send({ message: 'Internal Server Error' });
+      }
     });
-    // get a single food data by id from db
-    app.get('/food/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await foodsCollection.findOne(query);
-      res.send(result);
+
+    app.get('/foods/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await foodsCollection.findOne(query);
+        if (!result) {
+          return res.status(404).send({ message: 'Food not found' });
+        }
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching food by ID:', error);
+        res.status(500).send({ message: 'Internal Server Error' });
+      }
     });
+
+    // save purchase data in db
+    app.post('/purchase', async (req, res) => {
+      try {
+        const order = req.body;
+        const result = await purchasesCollection.insertOne(order);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ error: 'Failed to process purchase' });
+      }
+    });
+
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
