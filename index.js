@@ -60,6 +60,47 @@ async function run() {
       }
     });
 
+    // get all foods bought a specific user
+    app.get('/myfoods/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { buyerEmail: email };
+      const result = await purchasesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // delete a food from db
+    app.delete('/myfood/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await purchasesCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // get a single food purchase data by id from db
+    app.get('/myfood/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await purchasesCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Update a single food purchase data by in the db
+    app.put('/myfood/:id', async (req, res) => {
+      const id = req.params.id;
+      const foodData = req.body;
+      const updated = {
+        $set: foodData,
+      };
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const result = await purchasesCollection.updateOne(
+        query,
+        updated,
+        options
+      );
+      res.send(result);
+    });
+
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
