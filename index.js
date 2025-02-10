@@ -68,14 +68,6 @@ async function run() {
       res.send(result);
     });
 
-    // delete a food from db
-    app.delete('/myfood/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await purchasesCollection.deleteOne(query);
-      res.send(result);
-    });
-
     // get a single food purchase data by id from db
     app.get('/myfood/:id', async (req, res) => {
       const id = req.params.id;
@@ -101,6 +93,32 @@ async function run() {
       res.send(result);
     });
 
+    // **POST Route: Add a New Food Item**
+    app.post('/foods', async (req, res) => {
+      try {
+        const foodItem = req.body;
+        const result = await foodsCollection.insertOne(foodItem);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ error: 'Failed to add food item' });
+      }
+    });
+
+    // get all foods ordered by a logged in user
+    app.get('/my-orders/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { buyerEmail: email };
+      const result = await purchasesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // delete a food from db
+    app.delete('/my-orders/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await purchasesCollection.deleteOne(query);
+      res.send(result);
+    });
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 });
