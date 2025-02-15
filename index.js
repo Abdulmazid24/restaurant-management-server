@@ -24,9 +24,36 @@ async function run() {
     const db = client.db('restaurantDB');
     const foodsCollection = db.collection('foods');
     const purchasesCollection = db.collection('purchases');
+    app.get('/top-foods', async (req, res) => {
+      try {
+        const topFoods = await foodsCollection
+          .find()
+          .sort({ purchaseCounts: -1 }) // Correct order: DESCENDING
+          .limit(6)
+          .toArray();
+
+        res.json(topFoods);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch top foods' });
+      }
+    });
+
     app.get('/foods', async (req, res) => {
       try {
-        const result = await foodsCollection.find().toArray();
+        const search = req.query.search || ''; // Ensure search is always a string
+        console.log('Search Query:', search);
+
+        let query = {};
+        if (search) {
+          query = {
+            name: {
+              $regex: search,
+              $options: 'i',
+            },
+          };
+        }
+
+        const result = await foodsCollection.find(query).toArray();
         res.send(result);
       } catch (error) {
         console.error('Error fetching foods:', error);
@@ -52,19 +79,29 @@ async function run() {
     // save purchase data in db
     app.post('/purchase', async (req, res) => {
       try {
+        // save data in purchaseCollection
         const order = req.body;
         const result = await purchasesCollection.insertOne(order);
+        // Increase purchase Count in foods collection
+        const filter = { _id: new ObjectId(order.foodId) };
+        const update = {
+          $inc: { purchaseCount: 1 },
+        };
+        const updatePurchaseCount = await foodsCollection.updateOne(
+          filter,
+          update
+        );
         res.status(201).send(result);
       } catch (error) {
         res.status(500).send({ error: 'Failed to process purchase' });
       }
     });
 
-    // get all foods bought a specific user
+    // get all foods added a specific user
     app.get('/myfoods/:email', async (req, res) => {
       const email = req.params.email;
-      const query = { buyerEmail: email };
-      const result = await purchasesCollection.find(query).toArray();
+      const query = { email };
+      const result = await foodsCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -72,11 +109,25 @@ async function run() {
     app.get('/myfood/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      const result = await purchasesCollection.findOne(query);
+      const result = await foodsCollection.findOne(query);
       res.send(result);
     });
 
-    // Update a single food purchase data by in the db
+    // **POST Route: Add a New Food Item**
+    app.post('/add-foods', async (req, res) => {
+      try {
+        console.log('Received food item:', req.body); // Debugging line
+        const foodItem = req.body;
+        const result = await foodsCollection.insertOne(foodItem);
+        console.log('Insert result:', result); // Debugging line
+        res.status(201).send(result);
+      } catch (error) {
+        console.error('Error adding food:', error); // Debugging line
+        res.status(500).send({ error: 'Failed to add food item' });
+      }
+    });
+
+    // Update a single food that Added a logged in user
     app.put('/myfood/:id', async (req, res) => {
       const id = req.params.id;
       const foodData = req.body;
@@ -85,23 +136,8 @@ async function run() {
       };
       const query = { _id: new ObjectId(id) };
       const options = { upsert: true };
-      const result = await purchasesCollection.updateOne(
-        query,
-        updated,
-        options
-      );
+      const result = await foodsCollection.updateOne(query, updated, options);
       res.send(result);
-    });
-
-    // **POST Route: Add a New Food Item**
-    app.post('/foods', async (req, res) => {
-      try {
-        const foodItem = req.body;
-        const result = await foodsCollection.insertOne(foodItem);
-        res.status(201).send(result);
-      } catch (error) {
-        res.status(500).send({ error: 'Failed to add food item' });
-      }
     });
 
     // get all foods ordered by a logged in user
