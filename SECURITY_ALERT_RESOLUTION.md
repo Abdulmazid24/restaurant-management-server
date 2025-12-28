@@ -31,8 +31,8 @@ GitHub detected exposed MongoDB credentials in git commit history.
 
 4. **Update Your Local .env File**
    ```env
-   MONGODB_URI=mongodb+srv://restaurant-management:YOUR_NEW_PASSWORD@cluster0.5rne0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-   DB_USER=restaurant-management
+   MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_NEW_PASSWORD@YOUR_CLUSTER.mongodb.net/?retryWrites=true&w=majority&appName=YourApp
+   DB_USER=YOUR_USERNAME
    DB_PASS=YOUR_NEW_PASSWORD
    ```
 
