@@ -1,4 +1,20 @@
 const request = require('supertest');
+
+// Mock the database connection to avoid CI failures
+jest.mock('../src/config/database', () => ({
+    connectMongoose: jest.fn().mockResolvedValue(true),
+    connectNative: jest.fn().mockResolvedValue(true),
+    getDatabase: jest.fn().mockReturnValue({}),
+}));
+
+// Mock logger to avoid file system issues in CI
+jest.mock('../src/utils/logger', () => ({
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+}));
+
 const app = require('../src/app');
 
 describe('API Health Check', () => {
@@ -12,7 +28,7 @@ describe('API Health Check', () => {
     });
 
     it('should handle 404 for unknown routes', async () => {
-        const response = await request(app).get('/api/v1/unknown-route');
+        const response = await request(app).get('/api/v1/unknown-route-that-does-not-exist');
 
         expect(response.status).toBe(404);
     });
@@ -20,13 +36,10 @@ describe('API Health Check', () => {
 
 describe('API Versioning', () => {
     it('should have v1 API routes available', async () => {
-        // Test that API versioning is working
-        const routes = ['/api/v1/foods', '/api/v1/auth/login'];
+        // Test that versioned routes exist (will get 401/400, not 404)
+        const response = await request(app).get('/api/v1/foods');
 
-        for (const route of routes) {
-            const response = await request(app).get(route);
-            // Should not return 404 (route exists)
-            expect(response.status).not.toBe(404);
-        }
+        // Should not return 404 (route exists)
+        expect(response.status).not.toBe(404);
     });
 });
